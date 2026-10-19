@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SWT 选岗 · Job Picker</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">SWT</div>
+    <div>
+      <h1>选岗工作台 <span class="en">Job Picker</span></h1>
+      <p class="sub">按收入、成本、体验加权评分，挑出最适合你的岗位</p>
+    </div>
+  </div>
+  <div class="rate">
+    <button id="openData" class="data-btn">＋ 数据 <span class="en">Data</span></button>
+    <label for="rate">汇率 USD→CNY</label>
+    <input id="rate" type="number" step="0.01" value="7.10" />
+    <span class="hint">用于估算人民币收入</span>
+  </div>
+</header>
+
+<section class="controls">
+  <input id="q" class="search" type="search" placeholder="搜索岗位 / 雇主 / 城市（中英文都行）" />
+
+  <select id="state"><option value="">全部州 State</option></select>
+  <select id="type"><option value="">全部类型 Type</option></select>
+
+  <label class="num">时薪 ≥ <input id="minWage" type="number" step="0.5" placeholder="15" /></label>
+  <label class="num">周工时 ≥ <input id="minHours" type="number" step="1" placeholder="30" /></label>
+  <label class="num">住宿 ≤ <input id="maxHousing" type="number" step="10" placeholder="$/周" /></label>
+
+  <select id="tips">
+    <option value="">小费不限</option>
+    <option value="low">小费 低+</option>
+    <option value="medium">小费 中+</option>
+    <option value="high">小费 高</option>
+  </select>
+  <select id="meals">
+    <option value="">包餐不限</option>
+    <option value="partial">包餐 部分+</option>
+    <option value="full">包餐 全包</option>
+  </select>
+  <select id="overtime">
+    <option value="">加班不限</option>
+    <option value="some">有加班</option>
+    <option value="many">加班多</option>
+  </select>
+
+  <label class="chk"><input id="freeHousing" type="checkbox" /> 只看包住宿</label>
+  <label class="chk"><input id="onlyFav" type="checkbox" /> 只看收藏</label>
+
+  <select id="sort">
+    <option value="score">按综合评分 ↓</option>
+    <option value="net">按人民币净收入 ↓</option>
+    <option value="wage">按时薪 ↓</option>
+    <option value="housing">按住宿成本 ↑</option>
+    <option value="start">按开始日期 ↑</option>
+  </select>
+  <button id="reset" class="ghost">重置 Reset</button>
+</section>
+
+<details id="weightsPanel" class="weights" open>
+  <summary>
+    评分权重 <span class="en">Scoring weights</span>
+    <span id="presetName" class="preset-chip">赚钱优先</span>
+    <span class="chev">▾</span>
+  </summary>
+  <div class="preset-row">
+    <button class="preset" data-preset="money">赚钱优先</button>
+    <button class="preset" data-preset="easy">轻松优先</button>
+    <button class="preset" data-preset="value">性价比</button>
+    <button class="preset" data-preset="english">英语友好</button>
+  </div>
+  <div id="sliders" class="sliders"></div>
+  <p class="weights-note">权重会自动归一化，拖到 0 即忽略该维度。评分基于当前数据集中各维度的相对高低。</p>
+</details>
+
+<div class="statbar">
+  <span id="count">0 个岗位</span>
+  <span id="statLine" class="muted"></span>
+</div>
+
+<main id="grid" class="grid"></main>
+
+<div id="compareBar" class="compare-bar hidden">
+  <div class="picked" id="pickedList"></div>
+  <div class="actions">
+    <button id="openCompare">对比 Compare</button>
+    <button id="exportCsv" class="ghost">导出 CSV</button>
+    <button id="clearCompare" class="ghost">清空</button>
+  </div>
+</div>
+
+<div id="modal" class="modal hidden">
+  <div class="modal-inner">
+    <button id="closeModal" class="close">×</button>
+    <h2>岗位对比 <span class="en">Compare</span></h2>
+    <div id="compareTable"></div>
+  </div>
+</div>
+
+<div id="dataModal" class="modal hidden">
+  <div class="modal-inner data-inner">
+    <button id="closeData" class="close">×</button>
+    <h2>数据管理 <span class="en">Jobs & Data</span></h2>
+
+    <div class="data-toolbar">
+      <button id="addJob" class="primary">＋ 新增岗位</button>
+      <label class="file-btn">导入 JSON<input id="importFile" type="file" accept=".json,application/json" hidden></label>
+      <button id="exportJson" class="ghost">导出 JSON</button>
+      <button id="resetData" class="ghost danger">恢复示例</button>
+      <span class="data-count" id="dataCount"></span>
+    </div>
+
+    <div id="jobForm" class="job-form hidden">
+      <div class="form-grid">
+        <label>岗位名 EN<input id="f-title" placeholder="Housekeeping Attendant" /></label>
+        <label>中文名<input id="f-titleCn" placeholder="客房清洁" /></label>
+        <label>雇主<input id="f-employer" placeholder="Ocean Edge Resort" /></label>
+        <label>城市<input id="f-city" placeholder="Brewster" /></label>
+        <label>州<input id="f-state" maxlength="2" placeholder="MA" /></label>
+        <label>类型
+          <select id="f-type">
+            <option value="Housekeeping">客房 Housekeeping</option>
+            <option value="Food Service">餐饮 Food Service</option>
+            <option value="Recreation">娱乐 Recreation</option>
+            <option value="Retail">零售 Retail</option>
+            <option value="Kitchen">厨房 Kitchen</option>
+            <option value="Front Desk">前台 Front Desk</option>
+            <option value="Warehouse">仓储 Warehouse</option>
+            <option value="Other">其他 Other</option>
+          </select>
+        </label>
+        <label>时薪 USD<input id="f-wage" type="number" step="0.1" placeholder="17.5" /></label>
+        <label>周工时<input id="f-hours" type="number" step="1" placeholder="36" /></label>
+        <label>住宿 $/周<input id="f-housing" type="number" step="5" placeholder="0" /></label>
+        <label>住宿类型
+          <select id="f-housingType">
+            <option value="dorm">宿舍 dorm</option>
+            <option value="apartment">公寓 apartment</option>
+            <option value="hotel">酒店 hotel</option>
+            <option value="none">自理 none</option>
+          </select>
+        </label>
+        <label>小费
+          <select id="f-tips">
+            <option value="none">无 none</option>
+            <option value="low">低 low</option>
+            <option value="medium">中 medium</option>
+            <option value="high">高 high</option>
+          </select>
+        </label>
+        <label>包餐
+          <select id="f-meals">
+            <option value="none">不包 none</option>
+            <option value="partial">部分 partial</option>
+            <option value="full">全包 full</option>
+          </select>
+        </label>
+        <label>加班
+          <select id="f-overtime">
+            <option value="none">无 none</option>
+            <option value="some">有 some</option>
+            <option value="many">多 many</option>
+          </select>
+        </label>
+        <label>英语要求
+          <select id="f-english">
+            <option value="Basic">Basic</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Advanced">Advanced</option>
+          </select>
+        </label>
+        <label>开始日期<input id="f-start" type="date" /></label>
+        <label>结束日期<input id="f-end" type="date" /></label>
+        <label>标签（逗号分隔）<input id="f-perks" placeholder="海景宿舍, 可加班" /></label>
+        <label>图片 URL<input id="f-image" placeholder="https://..." /></label>
+        <label>来源链接<input id="f-source" placeholder="https://..." /></label>
+      </div>
+      <div class="form-actions">
+        <button id="saveJob" class="primary">保存</button>
+        <button id="cancelJob" class="ghost">取消</button>
+        <span id="formError" class="form-error"></span>
+      </div>
+    </div>
+
+    <div id="jobList" class="job-list"></div>
+    <p class="data-note">数据保存在这台设备的浏览器里（localStorage），换设备不会自动同步。用「导出 JSON」备份，换设备时「导入 JSON」恢复。</p>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
