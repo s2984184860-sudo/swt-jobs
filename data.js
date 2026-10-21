@@ -1,6 +1,6 @@
 // SWT 岗位数据（2027 Summer · InterExchange 真实岗位）
 // 更新数据后把 DATA_VERSION 改成新日期，网页会自动换用新数据
-window.DATA_VERSION = "2026-10-21.3";
+window.DATA_VERSION = "2026-10-21.4";
 
 window.JOBS = [
   {
@@ -519,5 +519,27 @@ window.JOBS = [
     perks: ["小费岗（底薪 $3.89）", "纽波特海滨小镇", "美方协助找房", "名额 2/3"],
     image: "",
     source: "https://www.stoneacrehospitality.com/"
+  },
+  {
+    id: "ie-24",
+    title: "Ride Operator",
+    titleCn: "游乐设施操作员",
+    employer: "HE&R - Hersheypark",
+    city: "Hershey",
+    state: "PA",
+    type: "Recreation",
+    wage: 14.0,
+    hours: 38,
+    housing: 160,
+    housingType: "dorm",
+    tips: "none",
+    meals: "partial",
+    overtime: "some",
+    start: "2027-06-09",
+    end: "2027-09-15",
+    english: "Advanced",
+    perks: ["免费进 Hersheypark/ZooAmerica", "$50–75/周餐补", "$250 季末奖金", "免费交通+SSN 协助", "员工食堂 $5"],
+    image: "",
+    source: "https://www.hersheypark.com/"
   }
 ];
