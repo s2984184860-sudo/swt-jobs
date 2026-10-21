@@ -1,6 +1,6 @@
 // SWT 岗位数据（2027 Summer · InterExchange 真实岗位）
 // 更新数据后把 DATA_VERSION 改成新日期，网页会自动换用新数据
-window.DATA_VERSION = "2026-10-21.1";
+window.DATA_VERSION = "2026-10-21.2";
 
 window.JOBS = [
   {
@@ -450,5 +450,51 @@ window.JOBS = [
     perks: ["小费岗（周薪 $700）", "50% 员工餐折扣", "伊利湖边酒庄"],
     image: "",
     source: "http://www.oldfirehousewinery.com"
+  },
+  {
+    id: "ie-21",
+    title: "Prep Cook",
+    titleCn: "备菜厨工",
+    employer: "Southern Shores Food Company",
+    city: "Kitty Hawk",
+    state: "NC",
+    type: "Kitchen",
+    wage: 15.0,
+    hours: 40,
+    weeklyPay: 650,
+    housing: 188,
+    housingType: "apartment",
+    tips: "low",
+    meals: "full",
+    overtime: "many",
+    start: "",
+    end: "",
+    english: "Advanced",
+    perks: ["免费员工餐", "海边度假区", "工时可到 55h", "住宿 $188/周偏贵"],
+    image: "",
+    source: "https://southernshorespizza.com/"
+  },
+  {
+    id: "ie-22",
+    title: "Line Cook",
+    titleCn: "灶台厨师",
+    employer: "Southern Shores Food Company",
+    city: "Kitty Hawk",
+    state: "NC",
+    type: "Kitchen",
+    wage: 15.0,
+    hours: 40,
+    weeklyPay: 650,
+    housing: 188,
+    housingType: "apartment",
+    tips: "low",
+    meals: "full",
+    overtime: "many",
+    start: "",
+    end: "",
+    english: "Advanced",
+    perks: ["免费员工餐", "海边度假区", "工时可到 55h", "住宿 $188/周偏贵"],
+    image: "",
+    source: "https://southernshorespizza.com/"
   }
 ];

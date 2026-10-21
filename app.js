@@ -213,7 +213,8 @@
     "Piezanos Pizza South": "img/piezano.jpg",
     "Petes Rocky Mountain Pizza": "img/petes.jpg",
     "Alaska Juneau Mining Company": "img/alaska-juneau.jpg",
-    "Old Firehouse Winery": "img/old-firehouse.jpg"
+    "Old Firehouse Winery": "img/old-firehouse.jpg",
+    "Southern Shores Food Company": "img/southern-shores.jpg"
   };
 
   function posterStyle(j) {
