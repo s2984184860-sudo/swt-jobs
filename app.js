@@ -86,7 +86,7 @@
     minWage: null, minHours: null, maxHousing: null,
     tips: "", meals: "", overtime: "",
     freeHousing: false, onlyFav: false, sort: "score",
-    rate: 7.10, favs: {}, picks: [], weights: null
+    rate: 7.10, living: 110, favs: {}, picks: [], weights: null
   };
 
   var $ = function (id) { return document.getElementById(id); };
@@ -96,6 +96,7 @@
     try {
       var f = localStorage.getItem("swt.favs"); if (f) state.favs = JSON.parse(f);
       var r = localStorage.getItem("swt.rate"); if (r) state.rate = parseFloat(r) || 7.10;
+      var lv = localStorage.getItem("swt.living"); if (lv) state.living = parseFloat(lv); if (isNaN(state.living)) state.living = 110;
       var w = localStorage.getItem("swt.weights"); if (w) state.weights = JSON.parse(w);
     } catch (e) {}
     if (!state.weights) state.weights = Object.assign({}, PRESETS.money.w);
@@ -109,12 +110,14 @@
     var base = j.wage * j.hours;
     var weeklyGross = (j.weeklyPay && j.weeklyPay > 0) ? j.weeklyPay : base;
     var mealCost = j.mealCost || 0;
-    var weeklyNet = Math.max(0, weeklyGross - (j.housing || 0) - mealCost);
+    var living = state.living || 0;
+    var weeklyNet = Math.max(0, weeklyGross - (j.housing || 0) - mealCost - living);
     var monthNetUsd = weeklyNet * 52 / 12;
     return {
       weeklyGross: weeklyGross,
       baseGross: base,
       mealCost: mealCost,
+      living: living,
       weeklyNet: weeklyNet,
       monthGrossUsd: weeklyGross * 52 / 12,
       monthNetUsd: monthNetUsd,
@@ -260,7 +263,7 @@
         '<div class="employer"><b>' + esc(j.employer) + '</b><br>' + esc(j.city) + ', ' + esc(j.state) + '</div>' +
         '<div class="money">' +
           '<div class="cny">¥' + fmtMoney(c.monthNetCny) + '<small>/月</small></div>' +
-          '<div class="usd">净收入（扣住宿' + ((j.mealCost || 0) ? '餐费' : '') + '）<br>$' + fmtMoney(c.monthNetUsd) + ' / 月</div>' +
+          '<div class="usd">净存（扣住宿' + ((j.mealCost || 0) ? '·餐费' : '') + '·生活费）<br>$' + fmtMoney(c.monthNetUsd) + ' / 月</div>' +
         '</div>' +
         '<div class="rows">' +
           '<div><span>底薪</span><span>$' + Number(j.wage).toFixed(2) + '/h</span></div>' +
@@ -269,6 +272,7 @@
           (j.weeklyPay && j.weeklyPay > 0 ? '<div><span>含小费周薪</span><span>$' + j.weeklyPay + '</span></div>' : '') +
           '<div><span>住宿</span><span>' + ((j.housing || 0) ? '$' + j.housing + '/周' : '免费') + '</span></div>' +
           ((j.mealCost || 0) ? '<div><span>餐费</span><span>$' + j.mealCost + '/周</span></div>' : '') +
+          '<div><span>生活费</span><span>$' + (state.living || 0) + '/周</span></div>' +
           '<div><span>起止</span><span>' + ((j.start || j.end) ? (fmtDate(j.start) + ' – ' + fmtDate(j.end)) : '待定') + '</span></div>' +
           '<div><span>小费</span><span>' + (TIPS_CN[j.tips] || "—") + '</span></div>' +
           '<div><span>包餐</span><span>' + (MEALS_CN[j.meals] || "—") + '</span></div>' +
@@ -358,7 +362,7 @@
     var bestScore = Math.max.apply(null, picked.map(scoreOf));
     var rows = [
       ["综合评分", function (j) { return "<b>" + Math.round(scoreOf(j)) + "</b> 分"; }],
-      ["月净收入", function (j) { return "¥" + fmtMoney(calc(j).monthNetCny) + "<br><span class='en'>$" + fmtMoney(calc(j).monthNetUsd) + "</span>"; }],
+      ["月净存", function (j) { return "¥" + fmtMoney(calc(j).monthNetCny) + "<br><span class='en'>$" + fmtMoney(calc(j).monthNetUsd) + "</span>"; }],
       ["底薪", function (j) { return "$" + Number(j.wage).toFixed(2) + "/h"; }],
       ["含小费时薪", function (j) { return "$" + (calc(j).weeklyGross / Math.max(1, j.hours)).toFixed(1) + "/h"; }],
       ["周工时", function (j) { return j.hours + " h"; }],
@@ -629,6 +633,12 @@
       buildRanges();
       render();
     });
+    $("living").addEventListener("input", function (e) {
+      state.living = parseFloat(e.target.value) || 0;
+      save("swt.living", state.living);
+      buildRanges();
+      render();
+    });
 
     $("reset").addEventListener("click", function () {
       state.q = ""; state.st = ""; state.type = "";
@@ -715,6 +725,7 @@
   buildRanges();
   if (window.innerWidth < 760) $("weightsPanel").removeAttribute("open");
   $("rate").value = state.rate;
+  $("living").value = state.living;
   fillSelects();
   renderWeights();
   bind();
