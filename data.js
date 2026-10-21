@@ -1,6 +1,6 @@
 // SWT 岗位数据（2027 Summer · InterExchange 真实岗位）
 // 更新数据后把 DATA_VERSION 改成新日期，网页会自动换用新数据
-window.DATA_VERSION = "2026-10-21.6";
+window.DATA_VERSION = "2026-10-21.7";
 
 window.JOBS = [
   {
@@ -577,6 +577,7 @@ window.JOBS = [
     hours: 35,
     weeklyPay: 700,
     housing: 149.2,
+    mealCost: 140,
     housingType: "dorm",
     tips: "low",
     meals: "none",
@@ -600,6 +601,7 @@ window.JOBS = [
     hours: 35,
     weeklyPay: 680,
     housing: 149.2,
+    mealCost: 140,
     housingType: "dorm",
     tips: "low",
     meals: "none",
@@ -623,6 +625,7 @@ window.JOBS = [
     hours: 35,
     weeklyPay: 680,
     housing: 149.2,
+    mealCost: 140,
     housingType: "dorm",
     tips: "low",
     meals: "none",
@@ -646,6 +649,7 @@ window.JOBS = [
     hours: 35,
     weeklyPay: 676,
     housing: 149.2,
+    mealCost: 140,
     housingType: "dorm",
     tips: "low",
     meals: "none",
@@ -669,6 +673,7 @@ window.JOBS = [
     hours: 35,
     weeklyPay: 676,
     housing: 149.2,
+    mealCost: 140,
     housingType: "dorm",
     tips: "low",
     meals: "none",
