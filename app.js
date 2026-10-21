@@ -216,7 +216,8 @@
     "Old Firehouse Winery": "img/old-firehouse.jpg",
     "Southern Shores Food Company": "img/southern-shores.jpg",
     "Stoneacre Brasserie": "img/stoneacre.jpg",
-    "HE&R - Hersheypark": "img/hersheypark.jpg"
+    "HE&R - Hersheypark": "img/hersheypark.jpg",
+    "Montecito Sequoia Lodge": "img/montecito.jpg"
   };
 
   function posterStyle(j) {
