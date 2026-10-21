@@ -18,13 +18,15 @@
     { key: "wage",     label: "含小费时薪", en: "Eff. wage", dir: "high" },
     { key: "tips",     label: "小费",     en: "Tips",      dir: "high" },
     { key: "overtime", label: "加班机会", en: "Overtime",  dir: "high" },
+    { key: "second",   label: "二工机会", en: "2nd job",   dir: "high" },
     { key: "housing",  label: "住宿成本", en: "Housing",   dir: "low"  },
     { key: "meals",    label: "包餐",     en: "Meals",     dir: "high" },
     { key: "hours",    label: "工时强度", en: "Workload",  dir: "low"  },
     { key: "english",  label: "英语门槛", en: "English",   dir: "low"  }
   ];
   var PRESETS = {
-    money:   { name: "赚钱优先", w: { income: 70, wage: 20, tips: 0, overtime: 0, housing: 10, meals: 0, hours: 0, english: 0 } },
+    saving:  { name: "净攒优先", w: { income: 55, wage: 15, tips: 0, overtime: 0, housing: 10, meals: 0, hours: 0, english: 0, second: 20 } },
+    money:   { name: "赚钱优先", w: { income: 70, wage: 20, tips: 0, overtime: 0, housing: 10, meals: 0, hours: 0, english: 0, second: 0 } },
     cash:    { name: "纯收入",   w: { income: 100, wage: 0, tips: 0, overtime: 0, housing: 0, meals: 0, hours: 0, english: 0 } },
     easy:    { name: "轻松优先", w: { income: 15, wage: 10, tips: 5, overtime: 0, housing: 20, meals: 20, hours: 20, english: 10 } },
     value:   { name: "性价比",   w: { income: 25, wage: 15, tips: 10, overtime: 5, housing: 20, meals: 15, hours: 5, english: 5 } },
@@ -86,7 +88,8 @@
     minWage: null, minHours: null, maxHousing: null,
     tips: "", meals: "", overtime: "",
     freeHousing: false, onlyFav: false, sort: "score",
-    rate: 7.10, living: 110, favs: {}, picks: [], weights: null
+    rate: 7.10, living: 110, upfront: 30000, secondWage: 16, secondHours: 10,
+    favs: {}, picks: [], weights: null
   };
 
   var $ = function (id) { return document.getElementById(id); };
@@ -97,13 +100,20 @@
       var f = localStorage.getItem("swt.favs"); if (f) state.favs = JSON.parse(f);
       var r = localStorage.getItem("swt.rate"); if (r) state.rate = parseFloat(r) || 7.10;
       var lv = localStorage.getItem("swt.living"); if (lv) state.living = parseFloat(lv); if (isNaN(state.living)) state.living = 110;
+      var up = localStorage.getItem("swt.upfront"); if (up) state.upfront = parseFloat(up); if (isNaN(state.upfront)) state.upfront = 30000;
+      var sw = localStorage.getItem("swt.secondWage"); if (sw) state.secondWage = parseFloat(sw); if (isNaN(state.secondWage)) state.secondWage = 16;
+      var sh = localStorage.getItem("swt.secondHours"); if (sh) state.secondHours = parseFloat(sh); if (isNaN(state.secondHours)) state.secondHours = 10;
       var w = localStorage.getItem("swt.weights"); if (w) state.weights = JSON.parse(w);
     } catch (e) {}
-    if (!state.weights) state.weights = Object.assign({}, PRESETS.money.w);
+    if (!state.weights) state.weights = Object.assign({}, PRESETS.saving.w);
   }
   function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
 
   /* ---------------- 计算 ---------------- */
+  // 二工机会 → 每周可额外工作的上限（小时）
+  var SECOND_HOURS = { none: 0, low: 4, medium: 8, high: 12 };
+  var SECOND_CN = { none: "很难", low: "少", medium: "中", high: "多" };
+
   function calc(j) {
     // weeklyPay: 含小费的周薪（小费岗底薪很低，用这个算真实收入）
     // mealCost: 每周强制餐费（如 Montecito 的 $20/天）
@@ -112,6 +122,17 @@
     var mealCost = j.mealCost || 0;
     var living = state.living || 0;
     var weeklyNet = Math.max(0, weeklyGross - (j.housing || 0) - mealCost - living);
+
+    // 二工：岗位所在地区的机会 × 你计划每周做多少小时
+    var cap = SECOND_HOURS[j.secondJob] != null ? SECOND_HOURS[j.secondJob] : 0;
+    var secondHours = Math.min(cap, state.secondHours || 0);
+    var secondIncome = secondHours * (state.secondWage || 0);
+    var weeklySave = weeklyNet + secondIncome;
+
+    var weeks = 14;
+    var totalBefore = weeklySave * weeks;
+    var totalAfter = totalBefore * state.rate - (state.upfront || 0);
+
     var monthNetUsd = weeklyNet * 52 / 12;
     return {
       weeklyGross: weeklyGross,
@@ -119,6 +140,10 @@
       mealCost: mealCost,
       living: living,
       weeklyNet: weeklyNet,
+      secondHours: secondHours,
+      secondIncome: secondIncome,
+      weeklySave: weeklySave,
+      total14Cny: totalAfter,
       monthGrossUsd: weeklyGross * 52 / 12,
       monthNetUsd: monthNetUsd,
       monthNetCny: monthNetUsd * state.rate
@@ -140,6 +165,7 @@
       case "wage": return calc(j).weeklyGross / Math.max(1, j.hours);
       case "tips": return TIPS_VAL[j.tips] != null ? TIPS_VAL[j.tips] : 0;
       case "overtime": return OT_VAL[j.overtime] != null ? OT_VAL[j.overtime] : 0;
+      case "second": return SECOND_HOURS[j.secondJob] != null ? SECOND_HOURS[j.secondJob] : 0;
       case "housing": return j.housing || 0;
       case "meals": return MEALS_VAL[j.meals] != null ? MEALS_VAL[j.meals] : 0;
       case "hours": return j.hours;
@@ -197,6 +223,7 @@
 
     list.sort(function (a, b) {
       switch (state.sort) {
+        case "total14": return calc(b).total14Cny - calc(a).total14Cny;
         case "net": return calc(b).monthNetCny - calc(a).monthNetCny;
         case "wage": return b.wage - a.wage;
         case "housing": return (a.housing || 0) - (b.housing || 0);
@@ -262,8 +289,8 @@
       '<div class="card-body">' +
         '<div class="employer"><b>' + esc(j.employer) + '</b><br>' + esc(j.city) + ', ' + esc(j.state) + '</div>' +
         '<div class="money">' +
-          '<div class="cny">¥' + fmtMoney(c.monthNetCny) + '<small>/月</small></div>' +
-          '<div class="usd">净存（扣住宿' + ((j.mealCost || 0) ? '·餐费' : '') + '·生活费）<br>$' + fmtMoney(c.monthNetUsd) + ' / 月</div>' +
+          '<div class="cny">' + (c.total14Cny < 0 ? '−¥' : '¥') + fmtMoney(Math.abs(c.total14Cny)) + '<small> 14周净赚</small></div>' +
+          '<div class="usd">扣 ¥' + fmtMoney(state.upfront || 0) + ' · 周存 $' + fmtMoney(c.weeklySave) + '</div>' +
         '</div>' +
         '<div class="rows">' +
           '<div><span>底薪</span><span>$' + Number(j.wage).toFixed(2) + '/h</span></div>' +
@@ -273,6 +300,8 @@
           '<div><span>住宿</span><span>' + ((j.housing || 0) ? '$' + j.housing + '/周' : '免费') + '</span></div>' +
           ((j.mealCost || 0) ? '<div><span>餐费</span><span>$' + j.mealCost + '/周</span></div>' : '') +
           '<div><span>生活费</span><span>$' + (state.living || 0) + '/周</span></div>' +
+          '<div><span>二工机会</span><span>' + (SECOND_CN[j.secondJob] || "—") + '</span></div>' +
+          '<div><span>二工收入</span><span>' + (c.secondHours ? ('+' + c.secondHours + 'h / $' + fmtMoney(c.secondIncome)) : '—') + '</span></div>' +
           '<div><span>起止</span><span>' + ((j.start || j.end) ? (fmtDate(j.start) + ' – ' + fmtDate(j.end)) : '待定') + '</span></div>' +
           '<div><span>小费</span><span>' + (TIPS_CN[j.tips] || "—") + '</span></div>' +
           '<div><span>包餐</span><span>' + (MEALS_CN[j.meals] || "—") + '</span></div>' +
@@ -300,7 +329,7 @@
     $("count").textContent = list.length + " / " + jobs.length + " 个岗位";
     var best = list.length ? list[0] : null;
     $("statLine").textContent = best
-      ? "当前排序第一：" + best.title + " · 综合 " + Math.round(scoreOf(best)) + " 分 · ¥" + fmtMoney(calc(best).monthNetCny) + "/月"
+      ? "当前排序第一：" + best.title + " · " + Math.round(scoreOf(best)) + " 分 · 14周净赚 ¥" + fmtMoney(calc(best).total14Cny)
       : (jobs.length ? "没有符合条件的岗位" : "还没有数据，点右上角「＋ 数据」添加岗位");
 
     renderCompareBar();
@@ -639,6 +668,24 @@
       buildRanges();
       render();
     });
+    $("upfront").addEventListener("input", function (e) {
+      state.upfront = parseFloat(e.target.value) || 0;
+      save("swt.upfront", state.upfront);
+      buildRanges();
+      render();
+    });
+    $("secondWage").addEventListener("input", function (e) {
+      state.secondWage = parseFloat(e.target.value) || 0;
+      save("swt.secondWage", state.secondWage);
+      buildRanges();
+      render();
+    });
+    $("secondHours").addEventListener("input", function (e) {
+      state.secondHours = parseFloat(e.target.value) || 0;
+      save("swt.secondHours", state.secondHours);
+      buildRanges();
+      render();
+    });
 
     $("reset").addEventListener("click", function () {
       state.q = ""; state.st = ""; state.type = "";
@@ -726,6 +773,9 @@
   if (window.innerWidth < 760) $("weightsPanel").removeAttribute("open");
   $("rate").value = state.rate;
   $("living").value = state.living;
+  $("upfront").value = state.upfront;
+  $("secondWage").value = state.secondWage;
+  $("secondHours").value = state.secondHours;
   fillSelects();
   renderWeights();
   bind();
