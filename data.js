@@ -1,6 +1,6 @@
 // SWT 岗位数据（2027 Summer · InterExchange 真实岗位）
 // 更新数据后把 DATA_VERSION 改成新日期，网页会自动换用新数据
-window.DATA_VERSION = "2026-10-21.4";
+window.DATA_VERSION = "2026-10-21.5";
 
 window.JOBS = [
   {
@@ -541,5 +541,28 @@ window.JOBS = [
     perks: ["免费进 Hersheypark/ZooAmerica", "$50–75/周餐补", "$250 季末奖金", "免费交通+SSN 协助", "员工食堂 $5"],
     image: "",
     source: "https://www.hersheypark.com/"
+  },
+  {
+    id: "ie-25",
+    title: "Helper",
+    titleCn: "餐厅帮手（点单/传菜）",
+    employer: "Petes Rocky Mountain Pizza",
+    city: "West Yellowstone",
+    state: "MT",
+    type: "Food Service",
+    wage: 15.0,
+    hours: 35,
+    weeklyPay: 800,
+    housing: 150,
+    housingType: "apartment",
+    tips: "high",
+    meals: "partial",
+    overtime: "some",
+    start: "",
+    end: "",
+    english: "Advanced",
+    perks: ["含小费周薪 $800", "接电话/点单/传菜", "员工餐 $4.50", "黄石公园门口"],
+    image: "",
+    source: "http://www.petesrockymountainpizza.com"
   }
 ];
