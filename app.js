@@ -88,7 +88,7 @@
     minWage: null, minHours: null, maxHousing: null,
     tips: "", meals: "", overtime: "",
     freeHousing: false, onlyFav: false, sort: "score",
-    rate: 7.10, living: 110, upfront: 30000, secondWage: 16, secondHours: 10,
+    rate: 7.10, living: 110, upfront: 30000, secondWage: 16, secondHours: 10, extraMain: 0,
     favs: {}, picks: [], weights: null
   };
 
@@ -103,6 +103,7 @@
       var up = localStorage.getItem("swt.upfront"); if (up) state.upfront = parseFloat(up); if (isNaN(state.upfront)) state.upfront = 30000;
       var sw = localStorage.getItem("swt.secondWage"); if (sw) state.secondWage = parseFloat(sw); if (isNaN(state.secondWage)) state.secondWage = 16;
       var sh = localStorage.getItem("swt.secondHours"); if (sh) state.secondHours = parseFloat(sh); if (isNaN(state.secondHours)) state.secondHours = 10;
+      var em = localStorage.getItem("swt.extraMain"); if (em) state.extraMain = parseFloat(em); if (isNaN(state.extraMain)) state.extraMain = 0;
       var w = localStorage.getItem("swt.weights"); if (w) state.weights = JSON.parse(w);
     } catch (e) {}
     if (!state.weights) state.weights = Object.assign({}, PRESETS.saving.w);
@@ -118,7 +119,13 @@
     // weeklyPay: 含小费的周薪（小费岗底薪很低，用这个算真实收入）
     // mealCost: 每周强制餐费（如 Montecito 的 $20/天）
     var base = j.wage * j.hours;
-    var weeklyGross = (j.weeklyPay && j.weeklyPay > 0) ? j.weeklyPay : base;
+    var weeklyGross0 = (j.weeklyPay && j.weeklyPay > 0) ? j.weeklyPay : base;
+
+    // 主职加班：超过 40 小时按 1.5 倍（上限看 hoursMax）
+    var maxH = j.hoursMax || j.hours;
+    var otHours = Math.min(state.extraMain || 0, Math.max(0, maxH - j.hours));
+    var otPay = otHours * j.wage * 1.5;
+    var weeklyGross = weeklyGross0 + otPay;
     var mealCost = j.mealCost || 0;
     var living = state.living || 0;
     var weeklyNet = Math.max(0, weeklyGross - (j.housing || 0) - mealCost - living);
@@ -137,6 +144,8 @@
     return {
       weeklyGross: weeklyGross,
       baseGross: base,
+      otHours: otHours,
+      otPay: otPay,
       mealCost: mealCost,
       living: living,
       weeklyNet: weeklyNet,
@@ -302,6 +311,7 @@
           '<div><span>生活费</span><span>$' + (state.living || 0) + '/周</span></div>' +
           '<div><span>二工机会</span><span>' + (SECOND_CN[j.secondJob] || "—") + '</span></div>' +
           '<div><span>二工收入</span><span>' + (c.secondHours ? ('+' + c.secondHours + 'h / $' + fmtMoney(c.secondIncome)) : '—') + '</span></div>' +
+          '<div><span>主职加班</span><span>' + (c.otHours ? ('+' + c.otHours + 'h / $' + fmtMoney(c.otPay)) : '—') + '</span></div>' +
           '<div><span>起止</span><span>' + ((j.start || j.end) ? (fmtDate(j.start) + ' – ' + fmtDate(j.end)) : '待定') + '</span></div>' +
           '<div><span>小费</span><span>' + (TIPS_CN[j.tips] || "—") + '</span></div>' +
           '<div><span>包餐</span><span>' + (MEALS_CN[j.meals] || "—") + '</span></div>' +
@@ -686,6 +696,12 @@
       buildRanges();
       render();
     });
+    $("extraMain").addEventListener("input", function (e) {
+      state.extraMain = parseFloat(e.target.value) || 0;
+      save("swt.extraMain", state.extraMain);
+      buildRanges();
+      render();
+    });
 
     $("reset").addEventListener("click", function () {
       state.q = ""; state.st = ""; state.type = "";
@@ -776,6 +792,7 @@
   $("upfront").value = state.upfront;
   $("secondWage").value = state.secondWage;
   $("secondHours").value = state.secondHours;
+  $("extraMain").value = state.extraMain;
   fillSelects();
   renderWeights();
   bind();
