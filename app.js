@@ -215,7 +215,8 @@
     "Alaska Juneau Mining Company": "img/alaska-juneau.jpg",
     "Old Firehouse Winery": "img/old-firehouse.jpg",
     "Southern Shores Food Company": "img/southern-shores.jpg",
-    "Stoneacre Brasserie": "img/stoneacre.jpg"
+    "Stoneacre Brasserie": "img/stoneacre.jpg",
+    "HE&R - Hersheypark": "img/hersheypark.jpg"
   };
 
   function posterStyle(j) {
