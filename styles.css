@@ -109,11 +109,11 @@ body {
 
 .money {
   background: var(--money-soft); color: var(--money);
-  border-radius: 12px; padding: 10px 12px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
 }
-.money .cny { font-size: 22px; font-weight: 800; letter-spacing: -.3px; }
-.money .cny small { font-size: 12px; font-weight: 600; opacity: .8; margin-left: 2px; }
-.money .usd { font-size: 12px; color: #2f6b52; text-align: right; line-height: 1.35; }
+.money .cny { font-size: 26px; font-weight: 800; letter-spacing: -.3px; line-height: 1.15; }
+.money .cny small { display: block; font-size: 11px; font-weight: 600; opacity: .75; margin-top: 1px; }
+.money .usd { font-size: 12px; color: #2f6b52; text-align: left; line-height: 1.35; }
 
 .rows { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; font-size: 13px; }
 .rows div { display: flex; justify-content: space-between; gap: 8px; }
