@@ -21,6 +21,12 @@
     <input id="rate" type="number" step="0.01" value="7.10" />
     <label for="living">生活费 $/周</label>
     <input id="living" type="number" step="5" value="110" />
+    <label for="upfront">项目成本 ¥</label>
+    <input id="upfront" type="number" step="1000" value="30000" />
+    <label for="secondWage">二工 $/h</label>
+    <input id="secondWage" type="number" step="1" value="16" />
+    <label for="secondHours">二工 h/周</label>
+    <input id="secondHours" type="number" step="1" value="10" />
     <span class="hint">用于估算人民币收入</span>
   </div>
 </header>
@@ -57,6 +63,7 @@
 
   <select id="sort">
     <option value="score">按综合评分 ↓</option>
+    <option value="total14">按 14 周净赚 ↓</option>
     <option value="net">按人民币净收入 ↓</option>
     <option value="wage">按时薪 ↓</option>
     <option value="housing">按住宿成本 ↑</option>
@@ -72,6 +79,7 @@
     <span class="chev">▾</span>
   </summary>
   <div class="preset-row">
+    <button class="preset" data-preset="saving">净攒优先</button>
     <button class="preset" data-preset="money">赚钱优先</button>
     <button class="preset" data-preset="cash">纯收入</button>
     <button class="preset" data-preset="easy">轻松优先</button>
