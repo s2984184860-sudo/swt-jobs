@@ -1,6 +1,6 @@
 // SWT 岗位数据（2027 Summer · InterExchange 真实岗位）
 // 更新数据后把 DATA_VERSION 改成新日期，网页会自动换用新数据
-window.DATA_VERSION = "2026-10-21.2";
+window.DATA_VERSION = "2026-10-21.3";
 
 window.JOBS = [
   {
@@ -496,5 +496,28 @@ window.JOBS = [
     perks: ["免费员工餐", "海边度假区", "工时可到 55h", "住宿 $188/周偏贵"],
     image: "",
     source: "https://southernshorespizza.com/"
+  },
+  {
+    id: "ie-23",
+    title: "Server / Support Staff",
+    titleCn: "服务员/传菜",
+    employer: "Stoneacre Brasserie",
+    city: "Newport",
+    state: "RI",
+    type: "Food Service",
+    wage: 3.89,
+    hours: 38,
+    weeklyPay: 850,
+    housing: 150,
+    housingType: "apartment",
+    tips: "high",
+    meals: "partial",
+    overtime: "some",
+    start: "2027-06-01",
+    end: "2027-09-15",
+    english: "Advanced",
+    perks: ["小费岗（底薪 $3.89）", "纽波特海滨小镇", "美方协助找房", "名额 2/3"],
+    image: "",
+    source: "https://www.stoneacrehospitality.com/"
   }
 ];
