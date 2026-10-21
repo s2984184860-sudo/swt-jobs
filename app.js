@@ -102,11 +102,15 @@
 
   /* ---------------- 计算 ---------------- */
   function calc(j) {
-    var weeklyGross = j.wage * j.hours;
+    // weeklyPay: 含小费的周薪（小费岗底薪很低，用这个算真实收入）
+    var base = j.wage * j.hours;
+    var weeklyGross = (j.weeklyPay && j.weeklyPay > 0) ? j.weeklyPay : base;
     var weeklyNet = Math.max(0, weeklyGross - (j.housing || 0));
     var monthNetUsd = weeklyNet * 52 / 12;
     return {
-      weeklyGross: weeklyGross, weeklyNet: weeklyNet,
+      weeklyGross: weeklyGross,
+      baseGross: base,
+      weeklyNet: weeklyNet,
       monthGrossUsd: weeklyGross * 52 / 12,
       monthNetUsd: monthNetUsd,
       monthNetCny: monthNetUsd * state.rate
@@ -196,8 +200,25 @@
   }
 
   /* ---------------- 卡片 ---------------- */
+  // 雇主照片（抓自各雇主官网）；没有图的雇主回落到渐变海报
+  var EMPLOYER_IMAGES = {
+    "320 Guest Ranch": "img/320-ranch.jpg",
+    "Alberton Orchards Guest Ranch": "img/alberton.jpg",
+    "Beartooth Market": "img/beartooth.jpg",
+    "Bishops Store": "img/bishops.jpg",
+    "Little Missouri Restaurant and Saloon": "img/little-missouri.jpg",
+    "Macondo Agency": "img/macondo.jpg",
+    "North Forty Resort": "img/north-forty.jpg",
+    "Piezanos Pizza North": "img/piezano.jpg",
+    "Piezanos Pizza South": "img/piezano.jpg",
+    "Petes Rocky Mountain Pizza": "img/petes.jpg",
+    "Alaska Juneau Mining Company": "img/alaska-juneau.jpg",
+    "Old Firehouse Winery": "img/old-firehouse.jpg"
+  };
+
   function posterStyle(j) {
-    if (j.image) return "background-image:url('" + j.image.replace(/'/g, "%27") + "')";
+    var img = j.image || EMPLOYER_IMAGES[j.employer];
+    if (img) return "background-image:url('" + img.replace(/'/g, "%27") + "')";
     var palettes = [
       ["#0b6bcb", "#4aa3ff"], ["#0a7a4a", "#3fbf85"], ["#8a4b12", "#e0a34e"],
       ["#5b2a86", "#a06ad6"], ["#0f4c5c", "#3f9aa8"], ["#7a1f2b", "#d05a6a"]
@@ -212,6 +233,7 @@
     var c = calc(j), sc = scoreOf(j);
     var fav = !!state.favs[j.id];
     var picked = state.picks.indexOf(j.id) !== -1;
+    var hasImg = !!(j.image || EMPLOYER_IMAGES[j.employer]);
     var el = document.createElement("article");
     el.className = "card";
     el.innerHTML =
@@ -220,7 +242,7 @@
           '<span class="state-badge">' + esc(j.state) + '</span>' +
           '<span class="score-badge ' + scoreClass(sc) + '"><b>' + Math.round(sc) + '</b>分</span>' +
         '</div>' +
-        '<div class="emoji">' + (TYPE_EMOJI[j.type] || TYPE_EMOJI.Other) + '</div>' +
+        (hasImg ? '' : '<div class="emoji">' + (TYPE_EMOJI[j.type] || TYPE_EMOJI.Other) + '</div>') +
         '<div class="poster-title">' + esc(j.title) +
           '<small>' + esc(j.titleCn || TYPE_CN[j.type] || "") + '</small>' +
         '</div>' +
@@ -232,10 +254,11 @@
           '<div class="usd">净收入（扣住宿）<br>$' + fmtMoney(c.monthNetUsd) + ' / 月</div>' +
         '</div>' +
         '<div class="rows">' +
-          '<div><span>时薪</span><span>$' + Number(j.wage).toFixed(1) + '/h</span></div>' +
+          '<div><span>时薪</span><span>$' + Number(j.wage).toFixed(2) + '/h</span></div>' +
           '<div><span>周工时</span><span>' + j.hours + ' h</span></div>' +
+          (j.weeklyPay && j.weeklyPay > 0 ? '<div><span>含小费周薪</span><span>$' + j.weeklyPay + '</span></div>' : '') +
           '<div><span>住宿</span><span>' + ((j.housing || 0) ? '$' + j.housing + '/周' : '免费') + '</span></div>' +
-          '<div><span>起止</span><span>' + fmtDate(j.start) + ' – ' + fmtDate(j.end) + '</span></div>' +
+          '<div><span>起止</span><span>' + ((j.start || j.end) ? (fmtDate(j.start) + ' – ' + fmtDate(j.end)) : '待定') + '</span></div>' +
           '<div><span>小费</span><span>' + (TIPS_CN[j.tips] || "—") + '</span></div>' +
           '<div><span>包餐</span><span>' + (MEALS_CN[j.meals] || "—") + '</span></div>' +
           '<div><span>加班</span><span>' + (OT_CN[j.overtime] || "—") + '</span></div>' +
@@ -325,14 +348,15 @@
     var rows = [
       ["综合评分", function (j) { return "<b>" + Math.round(scoreOf(j)) + "</b> 分"; }],
       ["月净收入", function (j) { return "¥" + fmtMoney(calc(j).monthNetCny) + "<br><span class='en'>$" + fmtMoney(calc(j).monthNetUsd) + "</span>"; }],
-      ["时薪", function (j) { return "$" + Number(j.wage).toFixed(1) + "/h"; }],
+      ["时薪", function (j) { return "$" + Number(j.wage).toFixed(2) + "/h"; }],
       ["周工时", function (j) { return j.hours + " h"; }],
+      ["含小费周薪", function (j) { return (j.weeklyPay && j.weeklyPay > 0) ? ("$" + j.weeklyPay) : "—"; }],
       ["住宿", function (j) { return ((j.housing || 0) ? "$" + j.housing + "/周" : "免费") + "<br><span class='en'>" + (HOUSING_CN[j.housingType] || "") + "</span>"; }],
       ["小费", function (j) { return TIPS_CN[j.tips] || "—"; }],
       ["包餐", function (j) { return MEALS_CN[j.meals] || "—"; }],
       ["加班", function (j) { return OT_CN[j.overtime] || "—"; }],
       ["英语要求", function (j) { return esc(j.english); }],
-      ["起止", function (j) { return fmtDate(j.start) + " – " + fmtDate(j.end); }],
+      ["起止", function (j) { return (j.start || j.end) ? (fmtDate(j.start) + " – " + fmtDate(j.end)) : "待定"; }],
       ["雇主", function (j) { return esc(j.employer) + "<br><span class='en'>" + esc(j.city) + ", " + esc(j.state) + "</span>"; }]
     ];
 
@@ -529,14 +553,14 @@
       ? jobs.filter(function (j) { return state.picks.indexOf(j.id) !== -1; })
       : filtered();
 
-    var head = ["综合评分", "岗位", "中文", "雇主", "城市", "州", "类型", "时薪USD", "周工时",
+    var head = ["综合评分", "岗位", "中文", "雇主", "城市", "州", "类型", "时薪USD", "含小费周薪USD", "周工时",
       "住宿USD/周", "住宿类型", "小费", "包餐", "加班", "开始", "结束",
       "月净收入USD", "月净收入CNY", "汇率", "来源"];
     var lines = [head.join(",")];
     list.forEach(function (j) {
       var c = calc(j);
       var row = [Math.round(scoreOf(j)), j.title, j.titleCn, j.employer, j.city, j.state, j.type,
-        j.wage, j.hours, j.housing || 0, j.housingType, j.tips, j.meals, j.overtime,
+        j.wage, j.weeklyPay || "", j.hours, j.housing || 0, j.housingType, j.tips, j.meals, j.overtime,
         j.start, j.end, c.monthNetUsd.toFixed(0), c.monthNetCny.toFixed(0), state.rate, j.source || ""];
       lines.push(row.map(function (v) {
         var s = String(v == null ? "" : v);
