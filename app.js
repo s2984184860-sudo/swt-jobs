@@ -15,7 +15,7 @@
   };
   var DIMS = [
     { key: "income",   label: "净收入",   en: "Income",    dir: "high" },
-    { key: "wage",     label: "时薪",     en: "Wage",      dir: "high" },
+    { key: "wage",     label: "含小费时薪", en: "Eff. wage", dir: "high" },
     { key: "tips",     label: "小费",     en: "Tips",      dir: "high" },
     { key: "overtime", label: "加班机会", en: "Overtime",  dir: "high" },
     { key: "housing",  label: "住宿成本", en: "Housing",   dir: "low"  },
@@ -24,7 +24,8 @@
     { key: "english",  label: "英语门槛", en: "English",   dir: "low"  }
   ];
   var PRESETS = {
-    money:   { name: "赚钱优先", w: { income: 40, wage: 20, tips: 15, overtime: 10, housing: 10, meals: 5, hours: 0, english: 0 } },
+    money:   { name: "赚钱优先", w: { income: 70, wage: 20, tips: 0, overtime: 0, housing: 10, meals: 0, hours: 0, english: 0 } },
+    cash:    { name: "纯收入",   w: { income: 100, wage: 0, tips: 0, overtime: 0, housing: 0, meals: 0, hours: 0, english: 0 } },
     easy:    { name: "轻松优先", w: { income: 15, wage: 10, tips: 5, overtime: 0, housing: 20, meals: 20, hours: 20, english: 10 } },
     value:   { name: "性价比",   w: { income: 25, wage: 15, tips: 10, overtime: 5, housing: 20, meals: 15, hours: 5, english: 5 } },
     english: { name: "英语友好", w: { income: 20, wage: 10, tips: 5, overtime: 0, housing: 15, meals: 10, hours: 5, english: 35 } }
@@ -49,6 +50,7 @@
   function normalize(j) {
     return Object.assign({
       titleCn: "", housing: 0, housingType: "dorm",
+      mealCost: 0,
       tips: "none", meals: "none", overtime: "none",
       english: "Basic", perks: [], image: "", source: ""
     }, j);
@@ -103,13 +105,16 @@
   /* ---------------- 计算 ---------------- */
   function calc(j) {
     // weeklyPay: 含小费的周薪（小费岗底薪很低，用这个算真实收入）
+    // mealCost: 每周强制餐费（如 Montecito 的 $20/天）
     var base = j.wage * j.hours;
     var weeklyGross = (j.weeklyPay && j.weeklyPay > 0) ? j.weeklyPay : base;
-    var weeklyNet = Math.max(0, weeklyGross - (j.housing || 0));
+    var mealCost = j.mealCost || 0;
+    var weeklyNet = Math.max(0, weeklyGross - (j.housing || 0) - mealCost);
     var monthNetUsd = weeklyNet * 52 / 12;
     return {
       weeklyGross: weeklyGross,
       baseGross: base,
+      mealCost: mealCost,
       weeklyNet: weeklyNet,
       monthGrossUsd: weeklyGross * 52 / 12,
       monthNetUsd: monthNetUsd,
@@ -129,7 +134,7 @@
   function rawDim(j, key) {
     switch (key) {
       case "income": return calc(j).monthNetCny;
-      case "wage": return j.wage;
+      case "wage": return calc(j).weeklyGross / Math.max(1, j.hours);
       case "tips": return TIPS_VAL[j.tips] != null ? TIPS_VAL[j.tips] : 0;
       case "overtime": return OT_VAL[j.overtime] != null ? OT_VAL[j.overtime] : 0;
       case "housing": return j.housing || 0;
@@ -255,13 +260,15 @@
         '<div class="employer"><b>' + esc(j.employer) + '</b><br>' + esc(j.city) + ', ' + esc(j.state) + '</div>' +
         '<div class="money">' +
           '<div class="cny">¥' + fmtMoney(c.monthNetCny) + '<small>/月</small></div>' +
-          '<div class="usd">净收入（扣住宿）<br>$' + fmtMoney(c.monthNetUsd) + ' / 月</div>' +
+          '<div class="usd">净收入（扣住宿' + ((j.mealCost || 0) ? '餐费' : '') + '）<br>$' + fmtMoney(c.monthNetUsd) + ' / 月</div>' +
         '</div>' +
         '<div class="rows">' +
-          '<div><span>时薪</span><span>$' + Number(j.wage).toFixed(2) + '/h</span></div>' +
+          '<div><span>底薪</span><span>$' + Number(j.wage).toFixed(2) + '/h</span></div>' +
+          '<div><span>含小费时薪</span><span>$' + (c.weeklyGross / Math.max(1, j.hours)).toFixed(1) + '/h</span></div>' +
           '<div><span>周工时</span><span>' + j.hours + ' h</span></div>' +
           (j.weeklyPay && j.weeklyPay > 0 ? '<div><span>含小费周薪</span><span>$' + j.weeklyPay + '</span></div>' : '') +
           '<div><span>住宿</span><span>' + ((j.housing || 0) ? '$' + j.housing + '/周' : '免费') + '</span></div>' +
+          ((j.mealCost || 0) ? '<div><span>餐费</span><span>$' + j.mealCost + '/周</span></div>' : '') +
           '<div><span>起止</span><span>' + ((j.start || j.end) ? (fmtDate(j.start) + ' – ' + fmtDate(j.end)) : '待定') + '</span></div>' +
           '<div><span>小费</span><span>' + (TIPS_CN[j.tips] || "—") + '</span></div>' +
           '<div><span>包餐</span><span>' + (MEALS_CN[j.meals] || "—") + '</span></div>' +
@@ -352,10 +359,12 @@
     var rows = [
       ["综合评分", function (j) { return "<b>" + Math.round(scoreOf(j)) + "</b> 分"; }],
       ["月净收入", function (j) { return "¥" + fmtMoney(calc(j).monthNetCny) + "<br><span class='en'>$" + fmtMoney(calc(j).monthNetUsd) + "</span>"; }],
-      ["时薪", function (j) { return "$" + Number(j.wage).toFixed(2) + "/h"; }],
+      ["底薪", function (j) { return "$" + Number(j.wage).toFixed(2) + "/h"; }],
+      ["含小费时薪", function (j) { return "$" + (calc(j).weeklyGross / Math.max(1, j.hours)).toFixed(1) + "/h"; }],
       ["周工时", function (j) { return j.hours + " h"; }],
       ["含小费周薪", function (j) { return (j.weeklyPay && j.weeklyPay > 0) ? ("$" + j.weeklyPay) : "—"; }],
       ["住宿", function (j) { return ((j.housing || 0) ? "$" + j.housing + "/周" : "免费") + "<br><span class='en'>" + (HOUSING_CN[j.housingType] || "") + "</span>"; }],
+      ["餐费", function (j) { return (j.mealCost || 0) ? ("$" + j.mealCost + "/周") : "—"; }],
       ["小费", function (j) { return TIPS_CN[j.tips] || "—"; }],
       ["包餐", function (j) { return MEALS_CN[j.meals] || "—"; }],
       ["加班", function (j) { return OT_CN[j.overtime] || "—"; }],
@@ -430,7 +439,7 @@
     var v = job || {
       title: "", titleCn: "", employer: "", city: "", state: "", type: "Housekeeping",
       wage: "", hours: "", housing: 0, housingType: "dorm", tips: "none", meals: "none",
-      overtime: "none", english: "Basic", start: "", end: "", perks: [], image: "", source: ""
+      overtime: "none", english: "Basic", start: "", end: "", perks: [], image: "", source: "", mealCost: 0
     };
     $("f-title").value = v.title || "";
     $("f-titleCn").value = v.titleCn || "";
@@ -441,6 +450,7 @@
     $("f-wage").value = v.wage === 0 ? "" : (v.wage || "");
     $("f-hours").value = v.hours || "";
     $("f-housing").value = v.housing || 0;
+    $("f-mealCost").value = v.mealCost || 0;
     $("f-housingType").value = v.housingType || "dorm";
     $("f-tips").value = v.tips || "none";
     $("f-meals").value = v.meals || "none";
@@ -482,6 +492,7 @@
       wage: wage,
       hours: hours,
       housing: parseFloat($("f-housing").value) || 0,
+      mealCost: parseFloat($("f-mealCost").value) || 0,
       housingType: $("f-housingType").value,
       tips: $("f-tips").value,
       meals: $("f-meals").value,
@@ -557,14 +568,15 @@
       ? jobs.filter(function (j) { return state.picks.indexOf(j.id) !== -1; })
       : filtered();
 
-    var head = ["综合评分", "岗位", "中文", "雇主", "城市", "州", "类型", "时薪USD", "含小费周薪USD", "周工时",
-      "住宿USD/周", "住宿类型", "小费", "包餐", "加班", "开始", "结束",
+    var head = ["综合评分", "岗位", "中文", "雇主", "城市", "州", "类型", "底薪USD/h", "含小费时薪USD/h", "含小费周薪USD", "周工时",
+      "住宿USD/周", "餐费USD/周", "住宿类型", "小费", "包餐", "加班", "开始", "结束",
       "月净收入USD", "月净收入CNY", "汇率", "来源"];
     var lines = [head.join(",")];
     list.forEach(function (j) {
       var c = calc(j);
       var row = [Math.round(scoreOf(j)), j.title, j.titleCn, j.employer, j.city, j.state, j.type,
-        j.wage, j.weeklyPay || "", j.hours, j.housing || 0, j.housingType, j.tips, j.meals, j.overtime,
+        j.wage, (c.weeklyGross / Math.max(1, j.hours)).toFixed(1), j.weeklyPay || "", j.hours, j.housing || 0, j.mealCost || 0,
+        j.housingType, j.tips, j.meals, j.overtime,
         j.start, j.end, c.monthNetUsd.toFixed(0), c.monthNetCny.toFixed(0), state.rate, j.source || ""];
       lines.push(row.map(function (v) {
         var s = String(v == null ? "" : v);
